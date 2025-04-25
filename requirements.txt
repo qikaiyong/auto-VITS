@@ -2,5 +2,5 @@ soundFile==0.13.1
 scipy==1.15.2
 numpy==1.26.4
 numba>=0.58
-modelscope==1.9.3
+modelscope
 funasr
