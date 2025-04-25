@@ -3,4 +3,4 @@ scipy==1.15.2
 numpy==1.26.4
 numba>=0.58
 modelscope==1.9.3
-funasr==0.8.7
+funasr
