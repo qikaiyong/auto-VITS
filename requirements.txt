@@ -2,6 +2,6 @@ soundFile==0.13.1
 scipy==1.15.2
 numpy==1.26.4
 numba>=0.58
-modelscope
-funasr
-addict
+modelscope==1.10.0
+funasr==0.8.7
+addict==2.4.0
