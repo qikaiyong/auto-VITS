@@ -10,40 +10,42 @@ from config import config
 
 
 def process_line(x):
-    line, add_blank = x
-    device = config.bert_gen_config.device
-    if config.bert_gen_config.use_multi_device:
-        rank = mp.current_process()._identity
-        rank = rank[0] if len(rank) > 0 else 0
-        if torch.cuda.is_available():
-            gpu_id = rank % torch.cuda.device_count()
-            device = torch.device(f"cuda:{gpu_id}")
-        else:
-            device = torch.device("cpu")
-    wav_path, _, language_str, text, phones, tone, word2ph = line.strip().split("|")
-    phone = phones.split(" ")
-    tone = [int(i) for i in tone.split(" ")]
-    word2ph = [int(i) for i in word2ph.split(" ")]
-    word2ph = [i for i in word2ph]
-    phone, tone, language = cleaned_text_to_sequence(phone, tone, language_str)
+    with torch.cuda.stream(torch.cuda.Stream()):
+        line, add_blank = x
+        device = config.bert_gen_config.device
+        if config.bert_gen_config.use_multi_device:
+            rank = mp.current_process()._identity
+            rank = rank[0] if len(rank) > 0 else 0
+            if torch.cuda.is_available():
+                gpu_id = rank % torch.cuda.device_count()
+                device = torch.device(f"cuda:{gpu_id}")
+            else:
+                device = torch.device("cpu")
+        wav_path, _, language_str, text, phones, tone, word2ph = line.strip().split("|")
+        phone = phones.split(" ")
+        tone = [int(i) for i in tone.split(" ")]
+        word2ph = [int(i) for i in word2ph.split(" ")]
+        word2ph = [i for i in word2ph]
+        phone, tone, language = cleaned_text_to_sequence(phone, tone, language_str)
 
-    if add_blank:
-        phone = commons.intersperse(phone, 0)
-        tone = commons.intersperse(tone, 0)
-        language = commons.intersperse(language, 0)
-        for i in range(len(word2ph)):
-            word2ph[i] = word2ph[i] * 2
-        word2ph[0] += 1
+        if add_blank:
+            phone = commons.intersperse(phone, 0)
+            tone = commons.intersperse(tone, 0)
+            language = commons.intersperse(language, 0)
+            for i in range(len(word2ph)):
+                word2ph[i] = word2ph[i] * 2
+            word2ph[0] += 1
 
-    bert_path = wav_path.replace(".WAV", ".wav").replace(".wav", ".bert.pt")
-    bert = get_bert(text, word2ph, language_str, device)
-    assert bert.shape[-1] == len(phone)
-    torch.save(bert, bert_path)
+        bert_path = wav_path.replace(".WAV", ".wav").replace(".wav", ".bert.pt")
+        bert = get_bert(text, word2ph, language_str, device)
+        assert bert.shape[-1] == len(phone)
+        torch.save(bert, bert_path)
 
 
 preprocess_text_config = config.preprocess_text_config
 
 if __name__ == "__main__":
+    torch.randn(1).cuda()  # 强制初始化
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c", "--config", type=str, default=config.bert_gen_config.config_path
